@@ -1,0 +1,19 @@
+# Stub parent so ufbt can resolve requires=["nfc"]; apptype APP keeps it out of the build.
+App(
+    appid="nfc",
+    name="NFC",
+    apptype=FlipperAppType.APP,
+    targets=["f7"],
+)
+
+App(
+    appid="snapmaker_parser",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="snapmaker_plugin_ep",
+    targets=["f7"],
+    requires=["nfc"],
+    sources=["plugin/snapmaker.c"],
+    fap_version="1.0",
+    fap_author="Tyler Fenby",
+    fap_description="Snapmaker U1 spool tags: decode and export as OpenSpool",
+)

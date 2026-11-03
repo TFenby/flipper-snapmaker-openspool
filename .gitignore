@@ -1,0 +1,7 @@
+dist/
+test/test_snapmaker
+.vscode/
+.clang-format
+.editorconfig
+.ufbt/
+.venv/

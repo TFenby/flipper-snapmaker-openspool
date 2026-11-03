@@ -1,0 +1,29 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: stock
+            index: https://update.flipperzero.one/firmware/directory.json
+          - name: unleashed
+            index: https://up.unleashedflip.com/directory.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
+        id: build
+        with:
+          sdk-channel: release
+          sdk-index-url: ${{ matrix.index }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapmaker_parser-${{ matrix.name }}
+          path: ${{ steps.build.outputs.fap-dir }}/snapmaker_parser.fal
