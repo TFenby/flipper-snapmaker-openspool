@@ -5,35 +5,53 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: make test
+
+  # One build per firmware line. Asset names carry the firmware version and API the
+  # build was made against, read from the SDK itself, so a Release lists real facts.
   build:
     needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - name: stock
-            index: https://update.flipperzero.one/firmware/directory.json
-          - name: unleashed
-            index: https://up.unleashedflip.com/directory.json
+          - id: official
+            label: Official
+            sdk: --channel=release
+          - id: unleashed-latest
+            label: Unleashed
+            sdk: --index-url=https://up.unleashedflip.com/directory.json --channel=release
+          - id: unleashed-084
+            label: Unleashed
+            sdk: --url=https://github.com/DarkFlippers/unleashed-firmware/releases/download/unlshd-084/flipper-z-f7-sdk-unlshd-084.zip
     steps:
       - uses: actions/checkout@v4
-      - uses: flipperdevices/flipperzero-ufbt-action@v0.1.4
-        id: build
-        with:
-          sdk-channel: release
-          sdk-index-url: ${{ matrix.index }}
-      - run: cp "${{ steps.build.outputs.fap-dir }}/snapmaker_parser.fal" "snapmaker_parser-${{ matrix.name }}.fal"
+      - run: python3 -m pip install --quiet ufbt
+      - run: python3 -m ufbt update ${{ matrix.sdk }}
+      - run: python3 -m ufbt
+      - name: Name the asset after what it was built against
+        run: |
+          FW=$(python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.ufbt/current/components.json")))["meta"]["version"])')
+          API=$(sed -n 2p ~/.ufbt/current/sdk_headers/f7_sdk/targets/f7/api_symbols.csv | cut -d, -f3)
+          LINE=$(echo "${{ matrix.label }}" | tr 'A-Z' 'a-z')
+          ASSET="snapmaker_parser-${LINE}-${FW}-api${API}.fal"
+          cp dist/snapmaker_parser.fal "$ASSET"
+          printf '| `%s` | %s %s | %s | API %s.x with x >= %s |\n' \
+            "$ASSET" "${{ matrix.label }}" "$FW" "$API" "${API%%.*}" "${API#*.}" > "meta-${{ matrix.id }}.md"
+          echo "Built $ASSET"
       - uses: actions/upload-artifact@v4
         with:
-          name: snapmaker_parser-${{ matrix.name }}
-          path: snapmaker_parser-${{ matrix.name }}.fal
-  # Tags vX.Y.Z publish both builds as Release assets; CI artifacts alone are too buried to be useful.
+          name: build-${{ matrix.id }}
+          path: |
+            snapmaker_parser-*.fal
+            meta-*.md
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
@@ -43,11 +61,33 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: snapmaker_parser-*
+          pattern: build-*
           merge-multiple: true
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes \
-            --notes "Built against the stock and Unleashed release SDKs current at build time. A .fal only loads when its API major matches your firmware; check device_info and see the README for building against another SDK." \
-            snapmaker_parser-stock.fal snapmaker_parser-unleashed.fal
+          {
+            echo "Snapmaker + OpenSpool NFC parser plugin for the Flipper Zero's stock NFC app."
+            echo "Scan a Snapmaker U1 spool to decode it; each scan also saves an OpenSpool NTAG215"
+            echo "image that the same app writes to a blank tag. Details in the README."
+            echo
+            echo "## Which file to install"
+            echo
+            echo "A \`.fal\` only loads when its API major equals the firmware's and its API minor is"
+            echo "not newer than the firmware's. Find yours in the Flipper CLI with \`device_info\`"
+            echo "(\`firmware_api_major\` / \`firmware_api_minor\`)."
+            echo
+            echo "| File | Built against | API | Loads on |"
+            echo "|---|---|---|---|"
+            cat meta-*.md
+            echo
+            echo "## Install"
+            echo
+            echo "Copy the file to \`/ext/apps_data/nfc/plugins/snapmaker_parser.fal\` on the SD card"
+            echo "(the name on the card does not matter) and restart the NFC app."
+            echo
+            echo "Running something else? Build against your firmware's SDK: see Build in the README."
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --title "Snapmaker + OpenSpool NFC plugin $GITHUB_REF_NAME" \
+            --notes-file notes.md snapmaker_parser-*.fal
