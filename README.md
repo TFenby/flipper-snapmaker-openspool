@@ -11,8 +11,10 @@ long as the `.fal` is built against the firmware's own SDK (see Build).
 
 ## Install
 
-Copy `snapmaker_parser.fal` to `/ext/apps_data/nfc/plugins/` on the SD card
-(qFlipper, or `make deploy` over USB) and restart the NFC app.
+Download the `.fal` for your firmware from
+[Releases](https://github.com/TFenby/flipper-snapmaker-openspool/releases), copy it to
+`/ext/apps_data/nfc/plugins/` on the SD card (qFlipper, or `make deploy` over
+USB after a local build) and restart the NFC app.
 
 ## Use
 
@@ -67,8 +69,8 @@ matching SDK before building:
 .venv/bin/ufbt update --url=<flipper-z-f7-sdk-*.zip from a specific release>   # anything else
 ```
 
-CI builds against the current stock and Unleashed release SDKs; grab the
-matching artifact from the Actions tab.
+Prebuilt `.fal` files for the current stock and Unleashed release SDKs are on
+the [Releases](https://github.com/TFenby/flipper-snapmaker-openspool/releases) page.
 
 ## How it works
 
