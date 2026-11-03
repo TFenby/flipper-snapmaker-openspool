@@ -66,7 +66,7 @@ matching SDK before building:
 ```
 .venv/bin/ufbt update --channel=release                                        # stock
 .venv/bin/ufbt update --index-url=https://up.unleashedflip.com/directory.json  # Unleashed, latest
-.venv/bin/ufbt update --url=<flipper-z-f7-sdk-*.zip from a specific release>   # anything else
+.venv/bin/ufbt update --hw-target=f7 --url=<flipper-z-f7-sdk-*.zip of a release>  # anything else
 ```
 
 Prebuilt `.fal` files for the current stock and Unleashed release SDKs are on

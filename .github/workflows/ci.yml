@@ -19,6 +19,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - id: official
@@ -29,7 +30,7 @@ jobs:
             sdk: --index-url=https://up.unleashedflip.com/directory.json --channel=release
           - id: unleashed-084
             label: Unleashed
-            sdk: --url=https://github.com/DarkFlippers/unleashed-firmware/releases/download/unlshd-084/flipper-z-f7-sdk-unlshd-084.zip
+            sdk: --hw-target=f7 --url=https://github.com/DarkFlippers/unleashed-firmware/releases/download/unlshd-084/flipper-z-f7-sdk-unlshd-084.zip
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m pip install --quiet ufbt
